@@ -1,0 +1,6 @@
+{
+  "name": "EchoTrace",
+  "description": "AI-powered claim tracing and misinformation analysis platform. Don't just detect misinformation. Trace it.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

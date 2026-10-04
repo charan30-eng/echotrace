@@ -1,0 +1,105 @@
+export * from './investigation';
+export * from './claimExtraction';
+export * from './evidenceSearch';
+
+export type RelationshipType = 
+  | 'mutated' 
+  | 'contradicts' 
+  | 'refuted by' 
+  | 'supports' 
+  | 'confirmed' 
+  | 'originated';
+
+export type SourceReliability = 'high' | 'medium' | 'low' | 'unverified';
+
+export type SourceType = 
+  | 'Official notice' 
+  | 'Social post' 
+  | 'Forwarded chat' 
+  | 'Student portal post' 
+  | 'News outlet' 
+  | 'Campus forum';
+
+export type VerificationStatus = 
+  | 'Verified source' 
+  | 'Needs verification' 
+  | 'Contradictory' 
+  | 'Unverified';
+
+export type NodeType = 'original' | 'modified' | 'conflicting' | 'evidence';
+
+export interface Source {
+  id: string;
+  type: SourceType;
+  name: string;
+  platform: string;
+  reliability: SourceReliability;
+  status: VerificationStatus;
+  timestamp: string;
+  authorHandle?: string;
+  reach?: string;
+  notes?: string;
+}
+
+export interface Factor {
+  name: string;
+  score: number; // 0 - 100
+  explanation: string;
+  weight?: string;
+  impact: 'negative' | 'neutral' | 'positive';
+}
+
+export interface VariantNode {
+  id: string;
+  type: NodeType;
+  label: string;
+  text: string;
+  timestamp: string;
+  source: Source;
+  relationship: string;
+  whyItMatters: string;
+  evidenceRef: string;
+  mutationNote?: string;
+  tags?: string[];
+}
+
+export interface GraphEdge {
+  id: string;
+  from: string;
+  to: string;
+  label: string;
+  type: 'mutated' | 'contradicts' | 'refuted by' | 'supports';
+  description?: string;
+}
+
+export interface ClaimAnalysis {
+  id: string;
+  text: string;
+  inputClaim: string;
+  score: number; // 0 - 100
+  status: 'Low credibility' | 'Needs review' | 'High credibility' | 'Refuted' | 'Unverified';
+  timestamp: string;
+  analysisDate: string;
+  isDemo: boolean;
+  coreClaim: string;
+  summaryReasoning: string;
+  detailedReasoning: string[];
+  factors: Factor[];
+  nodes: VariantNode[];
+  edges: GraphEdge[];
+  sources: Source[];
+  recommendation: string;
+  investigationInput?: import('./investigation').InvestigationInput;
+  extractedClaim?: import('./claimExtraction').ExtractedClaim;
+  extractionResult?: import('./claimExtraction').ClaimExtractionResult;
+  evidenceSearchResponse?: import('./evidenceSearch').EvidenceSearchResponse;
+  forensicSummary: {
+    originChannel: string;
+    driftSeverity: 'None' | 'Low' | 'Moderate' | 'High' | 'Severe';
+    contradictionDetected: boolean;
+    officialConfirmationState: 'Contradicts claim' | 'Supports claim' | 'Unverified / Pending';
+    estimatedSpread: string;
+  };
+}
+
+export type ActiveTab = 'home' | 'analyze' | 'architecture' | 'dashboard' | 'history' | 'how-it-works';
