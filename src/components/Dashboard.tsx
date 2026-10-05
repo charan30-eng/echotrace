@@ -2,6 +2,10 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ClaimAnalysis, ActiveTab } from '../types/claim';
 import { DEMO_SCENARIOS, SRM_DISCLAIMER_LABEL } from '../data/demoScenarios';
 import { collectSources } from '../services/sourceCollector';
+import { evidenceGraphBuilder } from '../services/evidenceGraphBuilder';
+import { Evidence } from '../types/evidence';
+import { EvidenceAssessment } from '../types/evidenceAnalysis';
+import { NormalizedSource } from '../types/sourceCollection';
 import { EvolutionGraph } from './EvolutionGraph';
 import { EvidencePanel } from './EvidencePanel';
 import { SourceTable } from './SourceTable';
@@ -46,7 +50,48 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [showScoreCalculation, setShowScoreCalculation] = useState(false);
   const [isEvolutionModalOpen, setIsEvolutionModalOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
+  const [pipelineEvidence, setPipelineEvidence] = useState<{
+    evidence: Evidence[];
+    assessments: EvidenceAssessment[];
+    sources: NormalizedSource[];
+  } | null>(null);
   const evidenceRef = useRef<HTMLDivElement>(null);
+
+  // Phase 9: Connect Real Evidence Pipeline to EchoTrace Lineage Graph
+  const activeEvidenceGraph = useMemo(() => {
+    const evidenceList = pipelineEvidence?.evidence || analysis.evidenceItems;
+    if (!evidenceList || evidenceList.length === 0) {
+      return {
+        nodes: analysis.nodes,
+        edges: analysis.edges,
+      };
+    }
+
+    const claim = analysis.extractedClaim || analysis.coreClaim || analysis.text;
+    const assessments = pipelineEvidence?.assessments || analysis.evidenceAssessments || [];
+    const sources = pipelineEvidence?.sources || analysis.normalizedSources || analysis.sources;
+    const credAssessments = analysis.credibilityAssessments || [];
+
+    const built = evidenceGraphBuilder.buildEvidenceGraph({
+      claim,
+      evidenceList,
+      assessments,
+      sources,
+      credibilityAssessments: credAssessments,
+      existingNodes: analysis.nodes,
+      existingEdges: analysis.edges,
+      options: {
+        includeSourceNodes: true,
+        includeCorroborationEdges: true,
+        preserveLineageVariants: true,
+      },
+    });
+
+    return {
+      nodes: built.nodes,
+      edges: built.edges,
+    };
+  }, [analysis, pipelineEvidence]);
 
   // Keyboard shortcut: Esc to close modals
   useEffect(() => {
@@ -258,6 +303,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         claim={analysis.extractedClaim}
         initialResponse={analysis.evidenceSearchResponse}
         isDemo={analysis.isDemo}
+        onEvidenceUpdated={(evidence, assessments, sources) => {
+          setPipelineEvidence({ evidence, assessments, sources });
+        }}
       />
 
       {/* Dual Centerpiece Banner: Credibility Score with Evolution Graph */}
@@ -485,8 +533,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
         </div>
         <EvolutionGraph
-          nodes={analysis.nodes}
-          edges={analysis.edges}
+          nodes={activeEvidenceGraph.nodes}
+          edges={activeEvidenceGraph.edges}
           onSelectEvidence={() => setIsEvidenceModalOpen(true)}
         />
       </div>
@@ -575,8 +623,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               <EvolutionGraph
-                nodes={analysis.nodes}
-                edges={analysis.edges}
+                nodes={activeEvidenceGraph.nodes}
+                edges={activeEvidenceGraph.edges}
                 onSelectEvidence={() => {
                   setIsEvolutionModalOpen(false);
                   setIsEvidenceModalOpen(true);

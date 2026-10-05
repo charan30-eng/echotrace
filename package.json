@@ -12,7 +12,11 @@
     "server": "tsx server/index.ts",
     "test:phase3": "tsx src/services/evidenceSearch.test.ts",
     "test:phase4": "tsx src/services/sourceCollector.test.ts",
-    "test:phase5": "tsx src/services/evidenceExtractor.test.ts"
+    "test:phase5": "tsx src/services/evidenceExtractor.test.ts",
+    "test:phase6": "tsx src/services/evidenceAnalyzer.test.ts",
+    "test:phase7": "tsx src/services/credibilityScorer.test.ts",
+    "test:phase8": "tsx src/services/sourceComparator.test.ts",
+    "test:phase9": "tsx src/services/evidenceGraphBuilder.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

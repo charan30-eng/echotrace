@@ -3,6 +3,8 @@ export * from './claimExtraction';
 export * from './evidenceSearch';
 export * from './sourceCollection';
 export * from './evidence';
+export * from './evidenceAnalysis';
+export * from './credibility';
 
 export type RelationshipType = 
   | 'mutated' 
@@ -67,6 +69,15 @@ export interface Factor {
   impact: 'negative' | 'neutral' | 'positive';
 }
 
+export type GraphEdgeType =
+  | 'mutated'
+  | 'contradicts'
+  | 'refuted by'
+  | 'supports'
+  | 'derived from'
+  | 'published by'
+  | 'corroborates';
+
 export interface VariantNode {
   id: string;
   type: NodeType;
@@ -79,6 +90,19 @@ export interface VariantNode {
   evidenceRef: string;
   mutationNote?: string;
   tags?: string[];
+
+  // Phase 9 Real Evidence Pipeline Extensions:
+  sourceId?: string;
+  url?: string;
+  excerpt?: string;
+  context?: string;
+  evidenceRelationship?: 'supports' | 'contradicts' | 'neutral' | 'insufficient';
+  reliability?: SourceReliability;
+  relevanceScore?: number;
+  evidenceId?: string;
+  evidenceType?: string;
+  extractionMethod?: string;
+  isPrimarySource?: boolean;
 }
 
 export interface GraphEdge {
@@ -86,7 +110,7 @@ export interface GraphEdge {
   from: string;
   to: string;
   label: string;
-  type: 'mutated' | 'contradicts' | 'refuted by' | 'supports';
+  type: GraphEdgeType;
   description?: string;
 }
 
@@ -113,6 +137,9 @@ export interface ClaimAnalysis {
   evidenceSearchResponse?: import('./evidenceSearch').EvidenceSearchResponse;
   normalizedSources?: import('./sourceCollection').NormalizedSource[];
   evidenceItems?: import('./evidence').Evidence[];
+  evidenceAssessments?: import('./evidenceAnalysis').EvidenceAssessment[];
+  credibilityAssessments?: import('./credibility').CredibilityAssessment[];
+  sourceComparison?: import('./sourceComparison').SourceComparison;
   forensicSummary: {
     originChannel: string;
     driftSeverity: 'None' | 'Low' | 'Moderate' | 'High' | 'Severe';
@@ -123,3 +150,7 @@ export interface ClaimAnalysis {
 }
 
 export type ActiveTab = 'home' | 'analyze' | 'architecture' | 'dashboard' | 'history' | 'how-it-works';
+
+// Re-export Phase 7 & 8 Types
+export * from './credibility';
+export * from './sourceComparison';
