@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 import dotenv from 'dotenv';
 import { createSearchMiddleware } from './src/server/searchMiddleware.ts';
 import { createContentFetchMiddleware } from './src/server/contentFetchMiddleware.ts';
+import { createInvestigationMiddleware } from './src/server/investigationMiddleware.ts';
 
 process.env.VITE_CONFIG_NATIVE_IGNORE_WARNING = 'true';
 dotenv.config();
@@ -21,6 +22,7 @@ export default defineConfig(() => {
         configureServer(server) {
           server.middlewares.use('/api/search', createSearchMiddleware());
           server.middlewares.use('/api/fetch', createContentFetchMiddleware());
+          server.middlewares.use('/api/investigations', createInvestigationMiddleware());
         },
       },
     ],

@@ -12,16 +12,28 @@ import {
 interface SourceTableProps {
   nodes: VariantNode[];
   sources: Source[];
+  isDemo?: boolean;
 }
 
-export const SourceTable: React.FC<SourceTableProps> = ({ nodes, sources }) => {
+export const SourceTable: React.FC<SourceTableProps> = ({ nodes, sources, isDemo = false }) => {
   return (
     <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-gray-100">
         <div>
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#4F46E5]">
-            Cross-Source Comparison
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#4F46E5]">
+              Cross-Source Comparison
+            </span>
+            {isDemo ? (
+              <span className="text-[10px] font-mono font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+                DEMO SCENARIO SOURCES
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                PIPELINE SOURCES
+              </span>
+            )}
+          </div>
           <h3 className="text-lg font-extrabold text-[#111827] mt-0.5">
             Source Matrix
           </h3>

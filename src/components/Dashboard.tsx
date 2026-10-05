@@ -13,6 +13,8 @@ import { AIExplanation } from './AIExplanation';
 import { ScoreCalculationNote } from './ScoreCalculationNote';
 import { StructuredClaimCard } from './StructuredClaimCard';
 import { EvidenceSearchResultsCard } from './EvidenceSearchResultsCard';
+import { VerdictCard } from './VerdictCard';
+import { verdictEngine } from '../services/verdictEngine';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -57,10 +59,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
   } | null>(null);
   const evidenceRef = useRef<HTMLDivElement>(null);
 
+  // Consolidated Pipeline Data: Active Evidence, Assessments & Sources
+  const effectiveSources = useMemo(() => {
+    if (pipelineEvidence?.sources && pipelineEvidence.sources.length > 0) {
+      return pipelineEvidence.sources;
+    }
+    if (analysis.evidenceSearchResponse?.results?.length) {
+      const normalized = collectSources(analysis.evidenceSearchResponse.results).sources;
+      const seen = new Set(analysis.sources.map((s) => s.id));
+      const merged = [...analysis.sources];
+      for (const s of normalized) {
+        if (!seen.has(s.id)) {
+          merged.push(s);
+          seen.add(s.id);
+        }
+      }
+      return merged;
+    }
+    return analysis.normalizedSources || analysis.sources;
+  }, [pipelineEvidence, analysis]);
+
+  const activeEvidenceList = useMemo(() => {
+    return pipelineEvidence?.evidence || analysis.evidenceItems || [];
+  }, [pipelineEvidence, analysis]);
+
+  const activeAssessmentsList = useMemo(() => {
+    return pipelineEvidence?.assessments || analysis.evidenceAssessments || [];
+  }, [pipelineEvidence, analysis]);
+
   // Phase 9: Connect Real Evidence Pipeline to EchoTrace Lineage Graph
   const activeEvidenceGraph = useMemo(() => {
-    const evidenceList = pipelineEvidence?.evidence || analysis.evidenceItems;
-    if (!evidenceList || evidenceList.length === 0) {
+    if (!activeEvidenceList || activeEvidenceList.length === 0) {
       return {
         nodes: analysis.nodes,
         edges: analysis.edges,
@@ -68,13 +97,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     const claim = analysis.extractedClaim || analysis.coreClaim || analysis.text;
-    const assessments = pipelineEvidence?.assessments || analysis.evidenceAssessments || [];
-    const sources = pipelineEvidence?.sources || analysis.normalizedSources || analysis.sources;
+    const assessments = activeAssessmentsList;
+    const sources = effectiveSources;
     const credAssessments = analysis.credibilityAssessments || [];
 
     const built = evidenceGraphBuilder.buildEvidenceGraph({
       claim,
-      evidenceList,
+      evidenceList: activeEvidenceList,
       assessments,
       sources,
       credibilityAssessments: credAssessments,
@@ -91,7 +120,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
       nodes: built.nodes,
       edges: built.edges,
     };
-  }, [analysis, pipelineEvidence]);
+  }, [analysis, activeEvidenceList, activeAssessmentsList, effectiveSources]);
+
+  // Phase 10: Multi-Evidence Synthesized Final Verdict
+  const activeVerdict = useMemo(() => {
+    if (analysis.verdict) return analysis.verdict;
+    if (activeEvidenceList && activeEvidenceList.length > 0) {
+      return verdictEngine.evaluateVerdict({
+        claim: analysis.extractedClaim || analysis.coreClaim || analysis.text,
+        evidenceList: activeEvidenceList,
+        assessments: activeAssessmentsList,
+        sources: effectiveSources,
+        credibilityAssessments: analysis.credibilityAssessments || [],
+        sourceComparison: analysis.sourceComparison,
+        evidenceGraph: activeEvidenceGraph,
+      });
+    }
+    return verdictEngine.evaluateClaimAnalysis(analysis);
+  }, [analysis, activeEvidenceList, activeAssessmentsList, effectiveSources, activeEvidenceGraph]);
 
   // Keyboard shortcut: Esc to close modals
   useEffect(() => {
@@ -245,14 +291,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex-1">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-gray-400">
-              Examined Statement
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#4F46E5] dark:text-indigo-400">
+              1. User Claim (Examined Input Statement)
             </span>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-[#111827] mt-1 leading-snug">
-              “{analysis.text}”
+            <h2 className="text-xl sm:text-2xl font-extrabold text-[#111827] dark:text-white mt-1 leading-snug">
+              “{analysis.inputClaim || analysis.text}”
             </h2>
             <p className="text-xs text-gray-500 mt-1 font-mono">
-              Core proposition: {analysis.coreClaim}
+              Core proposition statement: {analysis.coreClaim}
             </p>
 
             {analysis.investigationInput && (
@@ -308,29 +354,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
         }}
       />
 
-      {/* Dual Centerpiece Banner: Credibility Score with Evolution Graph */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 shadow-2xs">
+      {/* Phase 10: Grounded Final Verdict Card */}
+      <VerdictCard
+        verdict={activeVerdict}
+        onInspectEvidence={scrollToEvidence}
+      />
+
+      {/* Dual Centerpiece Banner: Phase 10 Verdict with Evolution Graph */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-          <span className="font-extrabold text-[#4F46E5] uppercase tracking-wide flex items-center gap-1.5">
+          <span className="font-extrabold text-[#4F46E5] dark:text-indigo-400 uppercase tracking-wide flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5" />
-            ANALYSIS OUTPUT:
+            SYNTHESIS OUTPUT:
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-white font-extrabold text-[#111827] border border-indigo-200/80 shadow-2xs">
-            Credibility Score:{' '}
-            {isUnverified ? (
-              <span className="text-[#6366F1] font-bold">UNRATED (PENDING EVIDENCE SEARCH)</span>
-            ) : (
-              <>
-                <span className={isLow ? 'text-[#DC2626]' : isMid ? 'text-[#F59E0B]' : 'text-[#16A34A]'}>
-                  {analysis.score}/100
-                </span>{' '}
-                ({analysis.status})
-              </>
-            )}
+          <span className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#111622] font-extrabold text-[#111827] dark:text-white border border-indigo-200/80 dark:border-indigo-800 shadow-2xs">
+            Verdict:{' '}
+            <span
+              className={
+                activeVerdict.status === 'supported'
+                  ? 'text-[#16A34A]'
+                  : activeVerdict.status === 'contradicted'
+                  ? 'text-[#DC2626]'
+                  : activeVerdict.status === 'mixed'
+                  ? 'text-[#F59E0B]'
+                  : 'text-[#6366F1]'
+              }
+            >
+              {activeVerdict.status.replace('_', ' ').toUpperCase()}
+            </span>{' '}
+            <span className="text-gray-400 font-mono text-[11px]">
+              ({Math.round(activeVerdict.confidence * 100)}% Conf.)
+            </span>
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-white font-extrabold text-[#111827] border border-indigo-200/80 shadow-2xs">
-            Evolution Graph: <span className="text-[#4F46E5]">{analysis.nodes.length} Nodes</span> ·{' '}
-            <span className="text-[#4F46E5]">{analysis.edges.length} Edges</span>
+          <span className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#111622] font-extrabold text-[#111827] dark:text-white border border-indigo-200/80 dark:border-indigo-800 shadow-2xs">
+            Evolution Graph: <span className="text-[#4F46E5] dark:text-indigo-400">{activeEvidenceGraph.nodes.length} Nodes</span> ·{' '}
+            <span className="text-[#4F46E5] dark:text-indigo-400">{activeEvidenceGraph.edges.length} Edges</span>
           </span>
         </div>
 
@@ -356,14 +414,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer group"
                 title="Click to view score derivation popup"
               >
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#4F46E5] group-hover:underline">
-                  CREDIBILITY
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 group-hover:underline">
+                  LEGACY SCORE
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                  Reference Heuristic
                 </span>
                 {/* Tiny ⓘ icon */}
                 <span
-                  className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-indigo-100 group-hover:bg-[#C8FF3D] group-hover:text-[#0B0D10] text-[#4F46E5] text-[10px] font-bold font-mono transition-colors shadow-2xs"
-                  title="How is this score calculated? (Click to view breakdown)"
-                  aria-label="How is this score calculated?"
+                  className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-indigo-100 dark:bg-indigo-900/50 group-hover:bg-[#C8FF3D] group-hover:text-[#0B0D10] text-[#4F46E5] dark:text-indigo-300 text-[10px] font-bold font-mono transition-colors shadow-2xs"
+                  title="Preserved 4-factor heuristic calculation. Superseded by Phase 10 Multi-Evidence Final Verdict."
+                  aria-label="How was this score calculated?"
                 >
                   ⓘ
                 </span>
@@ -446,7 +507,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="text-[11px] font-mono text-gray-400 mt-2">
-            Algorithmic confidence rating: High · Non-probabilistic factual check
+            Evidence-based analysis rating · Assessment bounded by available retrieved documentation
           </div>
         </div>
 
@@ -507,7 +568,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 flex items-center justify-between">
-            <span>Every factor derives from physical proof.</span>
+            <span>Every factor derives from audited documentary evidence and domain provenance.</span>
             <button
               onClick={() => setIsEvidenceModalOpen(true)}
               className="text-[#4F46E5] dark:text-indigo-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
@@ -536,28 +597,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
           nodes={activeEvidenceGraph.nodes}
           edges={activeEvidenceGraph.edges}
           onSelectEvidence={() => setIsEvidenceModalOpen(true)}
+          isDemo={analysis.isDemo}
+        />
+      </div>
+
+      {/* Primary Evidence Panel (Full documentary proof & excerpt audit) */}
+      <div ref={evidenceRef} id="evidence-panel-section" className="relative scroll-mt-6">
+        <EvidencePanel
+          nodes={activeEvidenceGraph.nodes}
+          sources={effectiveSources}
+          evidenceItems={activeEvidenceList}
+          evidenceAssessments={activeAssessmentsList}
+          isDemo={analysis.isDemo}
         />
       </div>
 
       {/* Source Comparison Table (Phase 4 Normalized Sources Matrix) */}
       <SourceTable
         nodes={analysis.nodes}
-        sources={
-          analysis.evidenceSearchResponse?.results?.length
-            ? (() => {
-                const normalized = collectSources(analysis.evidenceSearchResponse.results).sources;
-                const seen = new Set(analysis.sources.map((s) => s.id));
-                const merged = [...analysis.sources];
-                for (const s of normalized) {
-                  if (!seen.has(s.id)) {
-                    merged.push(s);
-                    seen.add(s.id);
-                  }
-                }
-                return merged;
-              })()
-            : analysis.sources
-        }
+        sources={effectiveSources}
+        isDemo={analysis.isDemo}
       />
 
       {/* AI Explanation Card */}
@@ -629,6 +688,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   setIsEvolutionModalOpen(false);
                   setIsEvidenceModalOpen(true);
                 }}
+                isDemo={analysis.isDemo}
               />
             </div>
           </div>
@@ -682,8 +742,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               <EvidencePanel
-                nodes={analysis.nodes}
-                sources={analysis.sources}
+                nodes={activeEvidenceGraph.nodes}
+                sources={effectiveSources}
+                evidenceItems={activeEvidenceList}
+                evidenceAssessments={activeAssessmentsList}
+                isDemo={analysis.isDemo}
                 onClose={() => setIsEvidenceModalOpen(false)}
               />
             </div>

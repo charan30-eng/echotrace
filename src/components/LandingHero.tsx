@@ -79,7 +79,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
               </div>
               <div>
                 <p className="font-bold text-[#111827] dark:text-white">Evidence Anchor</p>
-                <p className="text-[#6B7280] dark:text-slate-400 mt-0.5">Primary physical proof</p>
+                <p className="text-[#6B7280] dark:text-slate-400 mt-0.5">Primary documentary proof</p>
               </div>
             </div>
           </div>

@@ -27,12 +27,14 @@ interface EvolutionGraphProps {
   nodes: VariantNode[];
   edges: GraphEdge[];
   onSelectEvidence?: () => void;
+  isDemo?: boolean;
 }
 
 export const EvolutionGraph: React.FC<EvolutionGraphProps> = ({
   nodes,
   edges,
   onSelectEvidence,
+  isDemo = false,
 }) => {
   const [selectedNodeId, setSelectedNodeId] = useState<string>(nodes[0]?.id || '');
   const [inspectModalNode, setInspectModalNode] = useState<VariantNode | null>(null);
@@ -227,9 +229,15 @@ export const EvolutionGraph: React.FC<EvolutionGraphProps> = ({
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#4F46E5]">
               Lineage Network Graph
             </span>
-            <span className="text-[11px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
-              TOPOLOGICAL EVIDENCE DAG
-            </span>
+            {isDemo ? (
+              <span className="text-[10px] font-mono font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+                ILLUSTRATIVE DEMO GRAPH — SYNTHETIC TOPOLOGY
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded">
+                AUTHENTIC EVIDENCE PIPELINE DAG
+              </span>
+            )}
           </div>
           <h3 className="text-xl font-extrabold text-[#111827] mt-0.5">
             Evidence & Lineage Graph

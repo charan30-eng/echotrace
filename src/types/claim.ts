@@ -140,6 +140,7 @@ export interface ClaimAnalysis {
   evidenceAssessments?: import('./evidenceAnalysis').EvidenceAssessment[];
   credibilityAssessments?: import('./credibility').CredibilityAssessment[];
   sourceComparison?: import('./sourceComparison').SourceComparison;
+  verdict?: import('./verdict').Verdict;
   forensicSummary: {
     originChannel: string;
     driftSeverity: 'None' | 'Low' | 'Moderate' | 'High' | 'Severe';
@@ -151,6 +152,8 @@ export interface ClaimAnalysis {
 
 export type ActiveTab = 'home' | 'analyze' | 'architecture' | 'dashboard' | 'history' | 'how-it-works';
 
-// Re-export Phase 7 & 8 Types
+// Re-export Phase 7, 8, 10 & 12 Types
 export * from './credibility';
 export * from './sourceComparison';
+export * from './verdict';
+export * from './investigationRecord';

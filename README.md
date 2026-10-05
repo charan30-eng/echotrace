@@ -85,17 +85,37 @@ This repository contains the full multi-phase EchoTrace verification system.
     - Multi-column DAG network layout (Col 0: Claim & Lineage, Col 1: Real Evidence, Col 2: Sources).
     - Preserves zoom, node selection, network/timeline views, and design system.
     - Interactive inspection displaying source, clickable URL, excerpt blockquote, support/contradiction badge, reliability grade, and forensic significance.
+- **Phase 10**: Final Verdict Engine (All Previous Evidence → Final Verdict)
+  - **Service**: `src/services/verdictEngine.ts`
+  - **Model**: `Verdict` (`status`, `confidence`, `explanation`, `supportingEvidenceIds`, `contradictingEvidenceIds`, `keyFactors`, `limitations`, `generatedAt`)
+  - **Possible Final States**:
+    - `supported`: "Supported by available evidence"
+    - `contradicted`: "Contradicted by authoritative evidence"
+    - `mixed`: "Evidence is mixed across available sources"
+    - `insufficient_evidence`: "Insufficient evidence to determine"
+    - `unverified`: "Unverified / Pending documentary audit"
+  - **Epistemic Humility Guarantee**:
+    - Strictly does NOT claim absolute truth (e.g. NEVER "100% TRUE" or "100% FALSE").
+    - Confidence represents confidence in the assessment based on available evidence, NOT mathematical certainty that the claim is true in the physical world.
+  - **Obsolete Scoring Logic Replaced**:
+    - Hardcoded keyword weights (30% Source, 30% Authority, 25% Corroboration, 15% Consistency) are obsolete for final verdict determination; the system now synthesizes multi-factor evidence directly.
+  - **Explainability**:
+    - References actual physical evidence excerpts, publishers, and citations.
+    - Exposes disagreements when sources conflict.
+    - Generates 4-5 key forensic factors with directional impacts (`positive` | `negative' | 'neutral`).
+    - Reports explicit investigative boundaries and access limitations.
 
 ## Verification & Tests
 
 ```bash
-npm run test:phase3  # Phase 3 Real Evidence Search
-npm run test:phase4  # Phase 4 Source Collection & Normalization
-npm run test:phase5  # Phase 5 Safe Content Fetching & Evidence Extraction
-npm run test:phase6  # Phase 6 Semantic Stance Analysis (Support / Contradict / Neutral)
-npm run test:phase7  # Phase 7 Source Credibility & Reliability Scoring
-npm run test:phase8  # Phase 8 Cross-Source Comparison & Synthesis
-npm run test:phase9  # Phase 9 Evidence Graph Construction & Lineage Integration
-npm run lint         # TypeScript Compilation Check
-npm run build        # Production Bundle Build
+npm run test:phase3   # Phase 3 Real Evidence Search
+npm run test:phase4   # Phase 4 Source Collection & Normalization
+npm run test:phase5   # Phase 5 Safe Content Fetching & Evidence Extraction
+npm run test:phase6   # Phase 6 Semantic Stance Analysis (Support / Contradict / Neutral)
+npm run test:phase7   # Phase 7 Source Credibility & Reliability Scoring
+npm run test:phase8   # Phase 8 Cross-Source Comparison & Synthesis
+npm run test:phase9   # Phase 9 Evidence Graph Construction & Lineage Integration
+npm run test:phase10  # Phase 10 Multi-Evidence Final Verdict Engine
+npm run lint          # TypeScript Compilation Check
+npm run build         # Production Bundle Build
 ```

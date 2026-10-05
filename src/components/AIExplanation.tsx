@@ -50,9 +50,17 @@ export const AIExplanation: React.FC<AIExplanationProps> = ({ analysis }) => {
         </ul>
       </div>
 
-      <div className="pt-3 border-t border-indigo-100 flex items-center justify-between text-xs font-mono text-[#6B7280]">
+      <div className="pt-3 border-t border-indigo-100 dark:border-indigo-900/50 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-[#6B7280] dark:text-gray-400">
         <span>Recommendation: {analysis.recommendation}</span>
-        <span className="text-indigo-600 font-bold">Verifiable Institutional Record</span>
+        {analysis.isDemo ? (
+          <span className="text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">
+            Illustrative Scenario Record (Demo Data)
+          </span>
+        ) : (
+          <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+            Evidence-Based Analysis Record
+          </span>
+        )}
       </div>
     </div>
   );

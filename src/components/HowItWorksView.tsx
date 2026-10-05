@@ -68,8 +68,8 @@ export const HowItWorksView: React.FC<HowItWorksViewProps> = ({
           {
             step: '05',
             title: 'Verifiable Evidence Synthesis',
-            desc: 'Computes explainable 4-factor credibility score derived from physical registrar proof.',
-            tech: 'Standardized Invariant Weighted Scoring Formula',
+            desc: 'Computes explainable multi-evidence verdict derived from authenticated primary documentation and domain provenance.',
+            tech: 'Standardized Multi-Evidence Synthesis & Stance Matrix',
             icon: ShieldCheck,
           },
         ].map((item) => {

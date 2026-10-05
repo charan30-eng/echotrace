@@ -16,6 +16,7 @@ import { Dashboard } from './components/Dashboard';
 import { HistoryView } from './components/HistoryView';
 import { HowItWorksView } from './components/HowItWorksView';
 import { ForensicArchitectureView } from './components/ForensicArchitectureView';
+import { investigationService } from './services/investigationService';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
@@ -65,6 +66,31 @@ export default function App() {
     ...DEMO_SCENARIOS.map((s) => s.analysis),
     ...PRESET_HISTORY_CLAIMS.slice(1),
   ]);
+
+  // Phase 12: Load Persisted Investigations from Storage / REST API on mount
+  useEffect(() => {
+    let isMounted = true;
+    investigationService.getInvestigations().then((persistedRecords) => {
+      if (!isMounted || !persistedRecords || persistedRecords.length === 0) return;
+      const converted = persistedRecords.map((rec) =>
+        investigationService.investigationRecordToAnalysis(rec)
+      );
+      setHistoryList((prev) => {
+        const seenIds = new Set(converted.map((c) => c.id));
+        const seenTexts = new Set(converted.map((c) => c.text.toLowerCase()));
+        const unseeded = prev.filter(
+          (item) => !seenIds.has(item.id) && !seenTexts.has(item.text.toLowerCase())
+        );
+        return [...converted, ...unseeded];
+      });
+    }).catch((err) => {
+      console.warn('[EchoTrace:App] Failed to load persisted investigations:', err);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [pendingInput, setPendingInput] = useState<InvestigationInput | null>(null);
@@ -175,11 +201,15 @@ export default function App() {
     setIsProcessing(false);
     setActiveTab('dashboard');
 
-    // Add to history if not already present
+    // Phase 12: Persist complete investigation record via Backend API / Storage Adapter
+    investigationService.saveInvestigation(analysis).catch((err) => {
+      console.warn('[EchoTrace:App] Background investigation save error:', err);
+    });
+
+    // Add or update in history list
     setHistoryList((prev) => {
-      const exists = prev.some((p) => p.text.toLowerCase() === analysis.text.toLowerCase());
-      if (exists) return prev;
-      return [analysis, ...prev];
+      const filtered = prev.filter((p) => p.id !== analysis.id && p.text.toLowerCase() !== analysis.text.toLowerCase());
+      return [analysis, ...filtered];
     });
   };
 
@@ -275,6 +305,14 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
+  // Phase 12: Delete an investigation from persistent storage and view
+  const handleDeleteHistoryClaim = (id: string) => {
+    investigationService.deleteInvestigation(id).catch((err) => {
+      console.warn('[EchoTrace:App] Error deleting investigation:', err);
+    });
+    setHistoryList((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const handleTraceAnother = () => {
     setActiveTab('analyze');
   };
@@ -333,6 +371,7 @@ export default function App() {
                 historyList={historyList}
                 onSelectClaim={handleSelectHistoryClaim}
                 onNewAnalysis={() => setActiveTab('analyze')}
+                onDeleteClaim={handleDeleteHistoryClaim}
               />
             )}
 

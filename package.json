@@ -16,7 +16,9 @@
     "test:phase6": "tsx src/services/evidenceAnalyzer.test.ts",
     "test:phase7": "tsx src/services/credibilityScorer.test.ts",
     "test:phase8": "tsx src/services/sourceComparator.test.ts",
-    "test:phase9": "tsx src/services/evidenceGraphBuilder.test.ts"
+    "test:phase9": "tsx src/services/evidenceGraphBuilder.test.ts",
+    "test:phase10": "tsx src/services/verdictEngine.test.ts",
+    "test:phase12": "tsx src/services/investigationStorage.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
