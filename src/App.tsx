@@ -45,7 +45,7 @@ export default function App() {
       extractedClaim: ext.primaryClaim,
       extractionResult: ext,
       evidenceSearchResponse: {
-        status: 'empty',
+        status: 'demo_preserved',
         claimId: ext.primaryClaim.id,
         claimText: ext.primaryClaim.claimText,
         queryPlan,
@@ -224,7 +224,7 @@ export default function App() {
       extractedClaim: ext.primaryClaim,
       extractionResult: ext,
       evidenceSearchResponse: {
-        status: 'empty',
+        status: 'demo_preserved',
         claimId: ext.primaryClaim.id,
         claimText: ext.primaryClaim.claimText,
         queryPlan,
@@ -252,7 +252,7 @@ export default function App() {
         extractedClaim: ext.primaryClaim,
         extractionResult: ext,
         evidenceSearchResponse: {
-          status: 'empty',
+          status: 'demo_preserved',
           claimId: ext.primaryClaim.id,
           claimText: ext.primaryClaim.claimText,
           queryPlan,

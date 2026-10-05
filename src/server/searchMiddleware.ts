@@ -6,8 +6,8 @@
  */
 
 import { IncomingMessage, ServerResponse } from 'http';
-import { executeServerEvidenceSearch, getServerSearchConfig, hasConfiguredSearchProvider } from './searchHandler';
-import { ExtractedClaim } from '../types/claimExtraction';
+import { executeServerEvidenceSearch, getServerSearchConfig, hasConfiguredSearchProvider } from './searchHandler.ts';
+import { ExtractedClaim } from '../types/claimExtraction.ts';
 
 export function createSearchMiddleware() {
   return async function searchMiddleware(
@@ -49,15 +49,34 @@ export function createSearchMiddleware() {
       req.on('end', async () => {
         try {
           const parsed = JSON.parse(body || '{}');
-          const claim: ExtractedClaim = parsed.claim;
+          let claim: ExtractedClaim = parsed.claim;
           const options = parsed.options || {};
+
+          // If raw queries array was sent (e.g. from provider.search directly), wrap into claim
+          if (!claim && Array.isArray(parsed.queries) && parsed.queries.length > 0) {
+            const primaryQuery = parsed.queries[0];
+            claim = {
+              id: `claim-${Date.now()}`,
+              originalInput: primaryQuery,
+              claimText: primaryQuery,
+              subject: primaryQuery.split(' ')[0] || '',
+              action: '',
+              entities: [],
+              keywords: primaryQuery.split(/\s+/).filter((w: string) => w.length > 3),
+              extractedAt: new Date().toISOString(),
+              modality: 'assertive',
+              isAmbiguous: false,
+              verificationStatus: 'unverified',
+              confidence: 0.8,
+            };
+          }
 
           if (!claim || !claim.claimText) {
             res.setHeader('Content-Type', 'application/json');
             res.statusCode = 400;
             res.end(
               JSON.stringify({
-                error: 'Invalid request: "claim" object with "claimText" is required.',
+                error: 'Invalid request: "claim" object with "claimText" or "queries" array is required.',
               })
             );
             return;

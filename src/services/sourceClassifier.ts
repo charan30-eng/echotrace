@@ -16,7 +16,7 @@
  * Evidence is explicitly classified and audited by provenance.
  */
 
-import { SearchResult, SearchResultSourceType } from '../types/evidenceSearch';
+import { SearchResult, SearchResultSourceType } from '../types/evidenceSearch.ts';
 
 // Known reputable news domains
 const REPUTABLE_NEWS_DOMAINS = [

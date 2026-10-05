@@ -9,7 +9,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createSearchMiddleware } from '../src/server/searchMiddleware';
+import { createSearchMiddleware } from '../src/server/searchMiddleware.ts';
+import { createContentFetchMiddleware } from '../src/server/contentFetchMiddleware.ts';
 
 dotenv.config();
 
@@ -19,8 +20,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Attach EchoTrace Evidence Search API Middleware
+// Attach EchoTrace Evidence Search & Content Fetching API Middleware
 app.use('/api/search', createSearchMiddleware());
+app.use('/api/fetch', createContentFetchMiddleware());
 
 // Serve static frontend build if dist exists
 const distPath = path.resolve(__dirname, '../dist');

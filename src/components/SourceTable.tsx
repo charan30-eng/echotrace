@@ -45,8 +45,26 @@ export const SourceTable: React.FC<SourceTableProps> = ({ nodes, sources }) => {
           <tbody className="divide-y divide-gray-100 font-mono">
             {sources.map((src, index) => (
               <tr key={src.id || index} className="hover:bg-gray-50/50">
-                <td className="py-3 pr-4 font-sans font-bold text-[#111827]">
-                  {src.name}
+                <td className="py-3 pr-4 font-sans text-[#111827]">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <span>{src.name}</span>
+                    {src.url && (
+                      <a
+                        href={src.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#4F46E5] hover:text-[#4338CA] shrink-0"
+                        title={src.url}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                  {src.reliabilityExplanation && (
+                    <p className="text-[11px] font-mono text-gray-500 font-normal mt-0.5 max-w-md truncate" title={src.reliabilityExplanation}>
+                      {src.reliabilityExplanation}
+                    </p>
+                  )}
                 </td>
                 <td className="py-3 px-4 text-gray-500">
                   {src.platform} ({src.type})

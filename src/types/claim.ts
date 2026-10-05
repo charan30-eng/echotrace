@@ -1,6 +1,8 @@
 export * from './investigation';
 export * from './claimExtraction';
 export * from './evidenceSearch';
+export * from './sourceCollection';
+export * from './evidence';
 
 export type RelationshipType = 
   | 'mutated' 
@@ -14,11 +16,16 @@ export type SourceReliability = 'high' | 'medium' | 'low' | 'unverified';
 
 export type SourceType = 
   | 'Official notice' 
+  | 'Government source'
+  | 'News outlet' 
+  | 'Official social account'
   | 'Social post' 
+  | 'Blog'
+  | 'Forum'
   | 'Forwarded chat' 
   | 'Student portal post' 
-  | 'News outlet' 
-  | 'Campus forum';
+  | 'Campus forum'
+  | 'Unknown';
 
 export type VerificationStatus = 
   | 'Verified source' 
@@ -39,6 +46,17 @@ export interface Source {
   authorHandle?: string;
   reach?: string;
   notes?: string;
+
+  // Phase 4 Extensions (Compatible & Non-breaking)
+  url?: string;
+  domain?: string;
+  publisher?: string | null;
+  publishedAt?: string | null;
+  retrievalTimestamp?: string;
+  reliabilityExplanation?: string;
+  provenance?: import('./sourceCollection').SourceProvenance;
+  contentFetchStatus?: 'pending' | 'fetched' | 'unsupported' | 'failed';
+  snippet?: string;
 }
 
 export interface Factor {
@@ -93,6 +111,8 @@ export interface ClaimAnalysis {
   extractedClaim?: import('./claimExtraction').ExtractedClaim;
   extractionResult?: import('./claimExtraction').ClaimExtractionResult;
   evidenceSearchResponse?: import('./evidenceSearch').EvidenceSearchResponse;
+  normalizedSources?: import('./sourceCollection').NormalizedSource[];
+  evidenceItems?: import('./evidence').Evidence[];
   forensicSummary: {
     originChannel: string;
     driftSeverity: 'None' | 'Low' | 'Moderate' | 'High' | 'Severe';

@@ -249,6 +249,66 @@ async function testUnconfiguredFallbackSafeguard() {
   console.log('✓ testUnconfiguredFallbackSafeguard passed.');
 }
 
+// -------------------------------------------------------------
+// Test 6: Custom Provider Execution through searchEvidence
+// -------------------------------------------------------------
+async function testCustomProviderExecution() {
+  console.log('Testing: Custom Provider Execution through searchEvidence...');
+
+  const service = new EvidenceSearchService();
+
+  class MockAcademicRegistryProvider {
+    readonly name = 'MockAcademicRegistryProvider';
+    readonly isConfigured = true;
+    async search(queries: string[]): Promise<SearchResult[]> {
+      return [
+        {
+          id: 'mock-1',
+          title: 'SRM Institute Official Bulletin - Operations Normal',
+          url: 'https://www.srmist.edu.in/announcements/bulletin-today.html',
+          snippet: 'All academic operations continue as scheduled.',
+          publisher: 'srmist.edu.in',
+          sourceType: 'official',
+          priorityRank: 1,
+          query: queries[0] || 'srm notice',
+          retrievedAt: new Date().toISOString(),
+        },
+      ];
+    }
+  }
+
+  service.registerProvider(new MockAcademicRegistryProvider());
+  service.setActiveProvider('MockAcademicRegistryProvider');
+
+  const testClaim: ExtractedClaim = {
+    id: 'test-custom-provider',
+    originalInput: 'SRM College is closed tomorrow',
+    claimText: 'SRM College is closed tomorrow',
+    subject: 'SRM College',
+    action: 'closed',
+    timeReference: 'tomorrow',
+    entities: ['SRM College'],
+    keywords: ['srm', 'college', 'closed'],
+    extractedAt: new Date().toISOString(),
+    modality: 'assertive',
+    isAmbiguous: false,
+    verificationStatus: 'unverified',
+    confidence: 0.95,
+  };
+
+  const response = await service.searchEvidence(testClaim);
+  assert(response.status === 'success', `Expected success status, got ${response.status}`);
+  assert(response.results.length === 1, `Expected 1 result, got ${response.results.length}`);
+  assert(
+    response.providerUsed === 'MockAcademicRegistryProvider',
+    `Expected MockAcademicRegistryProvider, got ${response.providerUsed}`
+  );
+  assert(response.results[0].sourceType === 'official', 'Source type must be official');
+  assert(response.results[0].priorityRank === 1, 'Priority rank must be 1');
+
+  console.log('✓ testCustomProviderExecution passed.');
+}
+
 // Run all tests
 async function runAllTests() {
   console.log('====================================================');
@@ -259,6 +319,7 @@ async function runAllTests() {
   testSourceClassificationHierarchy();
   testUrlNormalizationAndDeduplication();
   testProviderArchitecture();
+  await testCustomProviderExecution();
   await testUnconfiguredFallbackSafeguard();
 
   console.log('====================================================');

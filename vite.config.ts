@@ -4,6 +4,7 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import dotenv from 'dotenv';
 import { createSearchMiddleware } from './src/server/searchMiddleware.ts';
+import { createContentFetchMiddleware } from './src/server/contentFetchMiddleware.ts';
 
 process.env.VITE_CONFIG_NATIVE_IGNORE_WARNING = 'true';
 dotenv.config();
@@ -16,9 +17,10 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       {
-        name: 'echotrace-search-api',
+        name: 'echotrace-api-services',
         configureServer(server) {
           server.middlewares.use('/api/search', createSearchMiddleware());
+          server.middlewares.use('/api/fetch', createContentFetchMiddleware());
         },
       },
     ],

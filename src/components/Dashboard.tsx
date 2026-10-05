@@ -1,6 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ClaimAnalysis, ActiveTab } from '../types/claim';
 import { DEMO_SCENARIOS, SRM_DISCLAIMER_LABEL } from '../data/demoScenarios';
+import { collectSources } from '../services/sourceCollector';
 import { EvolutionGraph } from './EvolutionGraph';
 import { EvidencePanel } from './EvidencePanel';
 import { SourceTable } from './SourceTable';
@@ -490,8 +491,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
         />
       </div>
 
-      {/* Source Comparison Table */}
-      <SourceTable nodes={analysis.nodes} sources={analysis.sources} />
+      {/* Source Comparison Table (Phase 4 Normalized Sources Matrix) */}
+      <SourceTable
+        nodes={analysis.nodes}
+        sources={
+          analysis.evidenceSearchResponse?.results?.length
+            ? (() => {
+                const normalized = collectSources(analysis.evidenceSearchResponse.results).sources;
+                const seen = new Set(analysis.sources.map((s) => s.id));
+                const merged = [...analysis.sources];
+                for (const s of normalized) {
+                  if (!seen.has(s.id)) {
+                    merged.push(s);
+                    seen.add(s.id);
+                  }
+                }
+                return merged;
+              })()
+            : analysis.sources
+        }
+      />
 
       {/* AI Explanation Card */}
       <AIExplanation analysis={analysis} />

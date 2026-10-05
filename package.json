@@ -10,7 +10,9 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "server": "tsx server/index.ts",
-    "test:phase3": "tsx src/services/evidenceSearch.test.ts"
+    "test:phase3": "tsx src/services/evidenceSearch.test.ts",
+    "test:phase4": "tsx src/services/sourceCollector.test.ts",
+    "test:phase5": "tsx src/services/evidenceExtractor.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

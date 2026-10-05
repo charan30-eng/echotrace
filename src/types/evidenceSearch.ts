@@ -77,6 +77,7 @@ export interface SearchQueryPlan {
 
 export type SearchResponseStatus =
   | 'uninitiated'       // Query plan formulated, pending user or pipeline search execution
+  | 'demo_preserved'    // Historical demo scenario loaded; preserved data view with live search available
   | 'success'           // Real search succeeded with results
   | 'unavailable'       // No provider API key configured; honest fallback (no fake data)
   | 'empty'             // Provider responded successfully but found 0 matching results

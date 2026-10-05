@@ -42,8 +42,27 @@ export class WebSearchProvider implements EvidenceSearchProvider {
   }
 
   public async search(queries: string[], options?: SearchOptions): Promise<SearchResult[]> {
-    // Queries are executed via the server endpoint to protect secret API credentials
-    return [];
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        queries,
+        options: {
+          ...options,
+          providerOverride: this.name,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`WebSearchProvider API error (HTTP ${res.status})`);
+    }
+
+    const data: EvidenceSearchResponse = await res.json();
+    return data.results || [];
   }
 }
 
@@ -61,7 +80,27 @@ export class OfficialSourceProvider implements EvidenceSearchProvider {
   }
 
   public async search(queries: string[], options?: SearchOptions): Promise<SearchResult[]> {
-    return [];
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        queries,
+        options: {
+          ...options,
+          providerOverride: this.name,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`OfficialSourceProvider API error (HTTP ${res.status})`);
+    }
+
+    const data: EvidenceSearchResponse = await res.json();
+    return data.results || [];
   }
 }
 
@@ -153,7 +192,8 @@ export class EvidenceSearchService {
   ): Promise<EvidenceSearchResponse> {
     const startTime = Date.now();
     const timeoutMs = options.timeoutMs || 9000;
-    const cacheKey = `${claim.id}-${claim.claimText.toLowerCase().trim()}`;
+    const providerName = options.providerOverride || this.activeProviderName;
+    const cacheKey = `${providerName}-${claim.id}-${claim.claimText.toLowerCase().trim()}`;
 
     // Return cached result if available
     if (this.cache.has(cacheKey)) {
@@ -164,6 +204,58 @@ export class EvidenceSearchService {
 
     // Generate search query plan locally for immediate client tracking
     const queryPlan = this.generateQueryPlan(claim);
+    const activeProvider = this.getProvider(providerName) || this.providers.get('WebSearchProvider');
+
+    // If a custom or mock provider was registered and is active (not default server proxy providers):
+    if (
+      activeProvider &&
+      activeProvider.name !== 'WebSearchProvider' &&
+      activeProvider.name !== 'OfficialSourceProvider' &&
+      typeof activeProvider.search === 'function'
+    ) {
+      try {
+        const queryStrings = queryPlan.queries.map((q) => q.query);
+        const rawResults = await activeProvider.search(queryStrings, options);
+        const deduplicated = deduplicateResultsByUrl(rawResults);
+        const prioritized = sortResultsByPriority(deduplicated);
+
+        const customResponse: EvidenceSearchResponse = {
+          status: prioritized.length > 0 ? 'success' : 'empty',
+          claimId: claim.id,
+          claimText: claim.claimText,
+          queryPlan,
+          results: prioritized,
+          totalResultsFound: rawResults.length,
+          uniqueUrlsCount: prioritized.length,
+          providerUsed: activeProvider.name,
+          executedQueries: queryStrings.slice(0, 3),
+          executionTimeMs: Date.now() - startTime,
+          message: prioritized.length > 0
+            ? `Custom provider ${activeProvider.name} retrieved ${prioritized.length} real evidence items.`
+            : `Custom provider ${activeProvider.name} completed with 0 results.`,
+          retrievedAt: new Date().toISOString(),
+        };
+
+        this.cache.set(cacheKey, customResponse);
+        return customResponse;
+      } catch (customErr: any) {
+        return {
+          status: 'error',
+          claimId: claim.id,
+          claimText: claim.claimText,
+          queryPlan,
+          results: [],
+          totalResultsFound: 0,
+          uniqueUrlsCount: 0,
+          providerUsed: activeProvider.name,
+          executedQueries: queryPlan.queries.map((q) => q.query),
+          executionTimeMs: Date.now() - startTime,
+          error: customErr.message,
+          message: `Custom search provider ${activeProvider.name} failed: ${customErr.message}`,
+          retrievedAt: new Date().toISOString(),
+        };
+      }
+    }
 
     // Setup client-side abort controller for network timeout
     const controller = new AbortController();
@@ -172,7 +264,7 @@ export class EvidenceSearchService {
     }, timeoutMs);
 
     try {
-      console.log(`[EchoTrace:EvidenceSearch] Dispatching search request to /api/search for claim: "${claim.claimText}"`);
+      console.log(`[EchoTrace:EvidenceSearch] Dispatching search request to /api/search for claim: "${claim.claimText}" using ${providerName}`);
 
       const response = await fetch('/api/search', {
         method: 'POST',

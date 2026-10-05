@@ -17,8 +17,8 @@
  * - "SRM university announcement"
  */
 
-import { ExtractedClaim } from '../types/claimExtraction';
-import { GeneratedQuery, SearchQueryPlan, SearchStrategyKind } from '../types/evidenceSearch';
+import { ExtractedClaim } from '../types/claimExtraction.ts';
+import { GeneratedQuery, SearchQueryPlan, SearchStrategyKind } from '../types/evidenceSearch.ts';
 
 function cleanQueryString(str: string): string {
   return str

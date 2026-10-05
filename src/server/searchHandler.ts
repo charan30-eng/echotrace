@@ -14,21 +14,25 @@
  * - GEMINI_API_KEY: Google GenAI with live Google Search Grounding tool
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+dotenv.config({ path: '.env.local', override: true });
+
 import { GoogleGenAI } from '@google/genai';
-import { ExtractedClaim } from '../types/claimExtraction';
+import { ExtractedClaim } from '../types/claimExtraction.ts';
 import {
   EvidenceSearchResponse,
   SearchResult,
   SearchOptions,
   SearchQueryPlan,
-} from '../types/evidenceSearch';
-import { generateSearchQueries } from '../services/evidenceQueryGenerator';
+} from '../types/evidenceSearch.ts';
+import { generateSearchQueries } from '../services/evidenceQueryGenerator.ts';
 import {
   classifySource,
   deduplicateResultsByUrl,
   sortResultsByPriority,
   normalizeUrl,
-} from '../services/sourceClassifier';
+} from '../services/sourceClassifier.ts';
 
 export interface ServerSearchConfig {
   tavilyApiKey?: string;
@@ -279,8 +283,15 @@ async function searchWithGeminiGrounding(
   try {
     const ai = new GoogleGenAI({ apiKey });
     
-    // Call Gemini with Google Search tool enabled
-    const response = await ai.models.generateContent({
+    // Call Gemini with Google Search tool enabled and enforce timeout
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Gemini Grounding request timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    );
+
+    const generatePromise = ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `Search Google for real verified institutional announcements or official circulars regarding this query: "${query}". Provide a summary of factual findings with primary source citations.`,
       config: {
@@ -288,6 +299,8 @@ async function searchWithGeminiGrounding(
         temperature: 0.1,
       },
     });
+
+    const response = await Promise.race([generatePromise, timeoutPromise]);
 
     const results: SearchResult[] = [];
     const candidate = response.candidates?.[0];
@@ -376,15 +389,33 @@ export async function executeServerEvidenceSearch(
     };
   }
 
-  // Determine active provider name
-  let providerName = 'Unknown';
-  if (config.tavilyApiKey) providerName = 'WebSearchProvider (Tavily)';
-  else if (config.serperApiKey) providerName = 'WebSearchProvider (Serper)';
-  else if (config.googleSearchApiKey && config.googleSearchCx) providerName = 'WebSearchProvider (Google Custom Search)';
-  else if (config.geminiApiKey) providerName = 'WebSearchProvider (Gemini Grounding)';
+  // Determine active backend search engine
+  let backendEngine = 'Unknown Engine';
+  if (config.tavilyApiKey) backendEngine = 'Tavily Search API';
+  else if (config.serperApiKey) backendEngine = 'Serper Google API';
+  else if (config.googleSearchApiKey && config.googleSearchCx) backendEngine = 'Google Custom Search JSON API';
+  else if (config.geminiApiKey) backendEngine = 'Gemini Google Search Grounding';
 
-  // Select top queries to execute (default top 3 strategies to prevent rate limits)
-  const queriesToRun = queryPlan.queries.slice(0, 3).map((q) => q.query);
+  // Determine provider architecture label
+  const isOfficialProvider = options.providerOverride === 'OfficialSourceProvider';
+  const providerName = isOfficialProvider
+    ? `OfficialSourceProvider (${backendEngine})`
+    : `WebSearchProvider (${backendEngine})`;
+
+  // Formulate queries to run based on provider focus
+  let queriesToRun: string[] = [];
+  if (isOfficialProvider) {
+    const officialQueries = queryPlan.queries.filter(
+      (q) => q.kind === 'official_target' || q.kind === 'entities_action'
+    );
+    const otherQueries = queryPlan.queries.filter(
+      (q) => q.kind !== 'official_target' && q.kind !== 'entities_action'
+    );
+    queriesToRun = [...officialQueries, ...otherQueries].slice(0, 3).map((q) => q.query);
+  } else {
+    queriesToRun = queryPlan.queries.slice(0, 3).map((q) => q.query);
+  }
+
   const aggregatedResults: SearchResult[] = [];
   const executedQueries: string[] = [];
   let isRateLimited = false;
